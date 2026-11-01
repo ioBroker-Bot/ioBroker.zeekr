@@ -1,9 +1,9 @@
 {
   "repo": "borconi/openzeekr",
   "branch": "master",
-  "sha": "2ad5f0b439f4543ed9fe8aac0c38aef0316a162f",
+  "sha": "640cd3bab18eefeaadfd5d343092a1507ccfa071",
   "path": "core/src/main/java/com/openzeekr/app/remote/Repositories.kt",
-  "message": "fix(ota/session): shared-account OTA error (#23) + token-expiry re-login prompt (#22)",
-  "updated_at": "2026-10-04T18:29:30Z",
-  "checked_at": "2026-10-31T12:53:02.044039+00:00"
+  "message": "feat(notifications): per-category Android notification channels",
+  "updated_at": "2026-11-01T09:43:18Z",
+  "checked_at": "2026-11-01T13:39:55.297323+00:00"
 }
