@@ -228,7 +228,7 @@ MOCK_VEHICLES = [
 
 def normalize_vehicle(vehicle_info, status=None, charging_status=None, remote_state=None,
                       vtm_status=None, charging_limit=None, charge_plan=None,
-                      travel_plan=None, journey_summary=None):
+                      travel_plan=None, journey_summary=None, journey_error=''):
     if hasattr(vehicle_info, '__dict__'):
         vehicle_dict = {key: getattr(vehicle_info, key) for key in dir(vehicle_info) if not key.startswith('_')}
     elif isinstance(vehicle_info, dict):
@@ -444,6 +444,7 @@ def normalize_vehicle(vehicle_info, status=None, charging_status=None, remote_st
         'ok': bool(journey_payload),
         'total': journey_payload.get('total'),
         'keys': journey_keys,
+        'error': (journey_error or '')[:160],
     }
 
     def slim_trip(record):
@@ -807,13 +808,16 @@ def main() -> int:
                 travel_plan = vehicle.get_travel_plan() or {}
             except Exception:
                 travel_plan = {}
+            journey_error = ''
             try:
                 journey = vehicle.get_journey_log(page_size=10, current_page=1) or {}
-            except Exception:
+            except Exception as exc:  # keep polling alive, surface code in fetchJson
                 journey = {}
+                journey_error = str(exc)[:160]
             normalized.append(normalize_vehicle(
                 vehicle.data or {}, status, charging_status, remote_state,
-                vtm_status, charging_limit, charge_plan, travel_plan, journey))
+                vtm_status, charging_limit, charge_plan, travel_plan, journey,
+                journey_error))
         print(json.dumps({"vehicles": normalized}))
         return 0
     except ZeekrException as exc:

@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "zeekr",
-    "version": "0.1.75",
+    "version": "0.1.76",
     "titleLang": {
       "en": "Zeekr",
       "de": "Zeekr",
@@ -74,6 +74,19 @@
       }
     ],
     "news": {
+      "0.1.76": {
+        "en": "Charge sessions survive restarts, missed short charges are reconstructed from SoC jumps, per-session price override for roaming tariffs, journey-log errors now visible for diagnosis.",
+        "de": "Ladesessions überleben Neustarts, verpasste Kurzladungen werden aus SoC-Sprüngen rekonstruiert, Preis-Override pro Session für Roaming-Tarife, Fahrtenbuch-Fehler jetzt zur Diagnose sichtbar.",
+        "ru": "Сессии зарядки переживают перезапуски, пропущенные короткие зарядки восстанавливаются по скачкам SoC, цена за сессию для роуминга, ошибки журнала поездок теперь видны.",
+        "pt": "Sessões de carga sobrevivem a reinícios, cargas curtas perdidas reconstruídas de saltos SoC, preço por sessão para roaming, erros do diário de bordo visíveis.",
+        "nl": "Laadsessies overleven herstarts, gemiste korte ladingen gereconstrueerd uit SoC-sprongen, prijs per sessie voor roaming, rittenlog-fouten zichtbaar.",
+        "fr": "Sessions de charge persistantes, recharges courtes manquées reconstruites depuis les sauts de SoC, prix par session pour l'itinérance, erreurs du journal visibles.",
+        "it": "Sessioni di ricarica persistenti, ricariche brevi perse ricostruite dai salti SoC, prezzo per sessione per roaming, errori del diario visibili.",
+        "es": "Sesiones de carga persistentes, cargas cortas perdidas reconstruidas de saltos SoC, precio por sesión para roaming, errores del diario visibles.",
+        "pl": "Sesje ładowania przetrwają restarty, pominięte krótkie ładowania odtwarzane ze skoków SoC, cena sesji dla roamingu, błędy dziennika widoczne.",
+        "uk": "Сесії зарядки переживають перезапуски, пропущені короткі зарядки відновлюються зі стрибків SoC, ціна сесії для роумінгу, помилки журналу видимі.",
+        "zh-cn": "充电会话在重启后保留，根据 SoC 跳变重建错过的短时充电，漫游按会话定价，行程日志错误可见。"
+      },
       "0.1.75": {
         "en": "Re-release: all admin translations completed, polling loop uses a clean setTimeout chain (no setInterval), APK upload page backup check fixed.",
         "de": "Re-Release: alle Admin-Übersetzungen vervollständigt, Poll-Loop nutzt eine saubere setTimeout-Kette (kein setInterval), Backup-Prüfung der APK-Upload-Seite korrigiert.",
@@ -151,19 +164,6 @@
         "pl": "Trasy: dziennik zmapowany na ostatnie trasy; details.model pokazuje skonfigurowany model.",
         "uk": "Поїздки: журнал змаповано на останні поїздки; details.model показує налаштовану модель.",
         "zh-cn": "行程：日志映射到最近行程；details.model显示配置的车型。"
-      },
-      "0.1.68": {
-        "en": "Bot fixes: trimmed news history, ABRP tab label, fuller translations.",
-        "de": "Bot-Fixes: News-Verlauf gekürzt, ABRP-Tab-Label, vollständigere Übersetzungen.",
-        "ru": "Бот-фиксы: урезана история news, метка вкладки ABRP, полные переводы.",
-        "pt": "Correções do bot: histórico news reduzido, rótulo ABRP, traduções completas.",
-        "nl": "Botfixes: news-geschiedenis ingekort, ABRP-tablabel, volledigere vertalingen.",
-        "fr": "Correctifs bot : historique news réduit, libellé onglet ABRP, traductions complètes.",
-        "it": "Fix bot: cronologia news ridotta, etichetta scheda ABRP, traduzioni complete.",
-        "es": "Correcciones del bot: historial news recortado, etiqueta ABRP, traducciones completas.",
-        "pl": "Poprawki bota: skrócona historia news, etykieta zakładki ABRP, pełne tłumaczenia.",
-        "uk": "Фікси бота: скорочено історію news, мітка вкладки ABRP, повні переклади.",
-        "zh-cn": "机器人修复：精简news历史、ABRP选项卡标签、完整翻译。"
       }
     }
   },

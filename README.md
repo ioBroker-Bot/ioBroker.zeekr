@@ -320,6 +320,10 @@ Unofficial community project. Not affiliated with Zeekr or Geely.
 
 ## Changelog
 
+### 0.1.76
+
+- Charge evaluation for roaming: session samples survive restarts/updates, missed short charges are reconstructed from SoC jumps, per-session price override (`energy.nextSessionPrice/Name`, auto-reset) beats geo tariffs, journey-log errors surface in `trips.fetchJson` for diagnosis
+
 ### 0.1.75
 
 - Re-release of 0.1.74 (npm trusted-publishing retry): all admin translations completed, polling loop cleaned to a pure `setTimeout` chain (dead `setInterval` aliases removed), APK upload page backup check fixed (script syntax error)

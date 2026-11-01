@@ -2022,6 +2022,31 @@ print(json.dumps({'full': full['journeyFetch'], 'empty': empty['journeyFetch']})
     assert.equal(out.empty.ok, false);
 });
 
+test('bridge surfaces journey errors for diagnosis (truncated, no crash)', () => {
+    const result = spawnSync(
+        PYTHON,
+        [
+            '-c',
+            `
+import importlib.util
+import json
+import pathlib
+spec = importlib.util.spec_from_file_location('bridge', pathlib.Path('lib/bridge.py'))
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+err = module.normalize_vehicle({'vin': 'V1'}, {}, {}, {}, {}, {}, {}, {}, {}, '401 denied ' + 'x' * 500)
+print(json.dumps(err['journeyFetch']))
+`,
+        ],
+        { cwd: path.join(__dirname, '..') },
+    );
+    assert.equal(result.status, 0, result.stderr.toString());
+    const fetch = JSON.parse(result.stdout.toString());
+    assert.equal(fetch.ok, false);
+    assert.match(fetch.error, /^401 denied/);
+    assert.ok(fetch.error.length <= 160);
+});
+
 test('bridge venv bootstrap needs no system pip and no download', () => {
     const result = spawnSync(
         PYTHON,
