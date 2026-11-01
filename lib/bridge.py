@@ -104,9 +104,14 @@ def _bootstrap_venv_pip(python_exe):
     if not os.path.isfile(installer_path):
         raise RuntimeError('pip bootstrap missing: lib/get-pip.py is not shipped with the adapter')
     try:
-        subprocess.check_call([python_exe, installer_path], timeout=180)
+        done = subprocess.run([python_exe, installer_path], capture_output=True, text=True, timeout=180)
     except Exception as exc:
         raise RuntimeError(f'pip bootstrap failed: {exc}') from exc
+    if done.returncode != 0:
+        # Never leak installer chatter to stdout: the adapter parses the
+        # script output as JSON, so any extra line breaks polling.
+        tail = (done.stderr or done.stdout or '')[-500:]
+        raise RuntimeError(f'pip bootstrap failed (exit {done.returncode}): {tail}')
 
 
 def get_first(*sources, keys, default=None):
