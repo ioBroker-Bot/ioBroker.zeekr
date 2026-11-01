@@ -2113,6 +2113,7 @@ test('charge samples survive restarts via the instance data dir', async () => {
         const adapter = new ZeekrAdapter({ log: { silly() {}, debug() {}, info() {}, warn() {}, error() {} } });
         adapter.getAdapterDataBaseDir = () => tmp;
         adapter._chargeSamples = new Map();
+        adapter._lastLevel = new Map();
         adapter._chargeSamplesRestored = false;
         return adapter;
     };
@@ -2122,15 +2123,23 @@ test('charge samples survive restarts via the instance data dir', async () => {
     ];
     const first = makeAdapter();
     first._chargeSamples.set('VIN1', samples);
+    first._lastLevel.set('VIN1', { level: 55, ts: 2000 });
     await first.persistChargeSamples();
     assert.ok(fs.existsSync(require('node:path').join(tmp, 'charge-samples.json')));
     // Fresh instance (e.g. after update/restart) restores the running session.
     const second = makeAdapter();
     await second.restoreChargeSamples();
     assert.deepEqual(second._chargeSamples.get('VIN1'), samples);
+    assert.deepEqual(second._lastLevel.get('VIN1'), { level: 55, ts: 2000 });
+    // Legacy format ({vin: [...]}) still restores.
+    fs.writeFileSync(require('node:path').join(tmp, 'charge-samples.json'), JSON.stringify({ VIN9: samples }));
+    const legacy = makeAdapter();
+    await legacy.restoreChargeSamples();
+    assert.deepEqual(legacy._chargeSamples.get('VIN9'), samples);
     // Second restore is a no-op (flag), settled sessions clear the file.
     await second.restoreChargeSamples();
     second._chargeSamples.delete('VIN1');
+    second._lastLevel.delete('VIN1');
     await second.persistChargeSamples();
     assert.equal(fs.existsSync(require('node:path').join(tmp, 'charge-samples.json')), false);
     // Corrupt file never crashes, just starts fresh.
@@ -2138,4 +2147,71 @@ test('charge samples survive restarts via the instance data dir', async () => {
     const third = makeAdapter();
     await third.restoreChargeSamples();
     assert.equal(third._chargeSamples.size, 0);
+});
+
+test('missed short charges settle from the SoC jump', async () => {
+    const os = require('node:os');
+    const fs = require('node:fs');
+    const tmp = fs.mkdtempSync(require('node:path').join(os.tmpdir(), 'zeekr-jump-'));
+    const adapter = new ZeekrAdapter({ log: { silly() {}, debug() {}, info() {}, warn() {}, error() {} } });
+    adapter.getAdapterDataBaseDir = () => tmp;
+    adapter.config = {};
+    const car = batteryLevel => ({
+        vin: 'VJUMP',
+        name: 'Car',
+        batteryLevel,
+        isCharging: false,
+        chargePower: 0,
+        currentSpeed: 0,
+        latitude: 51.3,
+        longitude: 12.38,
+        pluggedIn: true,
+        chargingLimit: 100,
+    });
+    await adapter.trackEnergy([car(50)]);
+    assert.equal(adapter._states.get('vehicles.vjump.energy.sessionKwh'), undefined);
+    // Charge fully missed between polls: +8 % SoC reconstructs a session.
+    await adapter.trackEnergy([car(58)]);
+    const kwh = adapter._states.get('vehicles.vjump.energy.sessionKwh').val;
+    // 8 % of 100 kWh through 88 % efficiency.
+    assert.ok(kwh > 9 && kwh < 9.2, kwh);
+    assert.equal(adapter._states.get('vehicles.vjump.energy.sessionTariff').val, 'default');
+});
+
+test('per-session price override wins over tariffs and resets', async () => {
+    const E = require('../lib/energy');
+    const adapter = new ZeekrAdapter({ log: { silly() {}, debug() {}, info() {}, warn() {}, error() {} } });
+    adapter.config = {};
+    adapter.getStateAsync = async id => {
+        if (id.endsWith('energy.nextSessionPrice')) {
+            return { val: 0.5 };
+        }
+        if (id.endsWith('energy.nextSessionName')) {
+            return { val: 'EnBW' };
+        }
+        return null;
+    };
+    const writes = {};
+    adapter.setStateChangedAsync = async (id, val) => {
+        writes[id] = val;
+    };
+    const samples = [
+        { ts: 1000, chargePowerKw: 11, batteryLevelPct: 50 },
+        { ts: 2000, chargePowerKw: 11, batteryLevelPct: 55 },
+    ];
+    await adapter.settleChargeSession('vehicles.v1', 'V1', samples, {
+        energy: E,
+        tariffs: [],
+        defaultPrice: 0.3,
+        capacity: 100,
+        efficiency: 88,
+        lat: 0,
+        lon: 0,
+    });
+    assert.equal(writes['vehicles.v1.energy.sessionTariff'], 'EnBW');
+    // 5 % gain through 88 % efficiency at the 0.50 override price.
+    assert.equal(writes['vehicles.v1.energy.sessionCost'], 2.841);
+    assert.equal(JSON.parse(writes['vehicles.v1.energy.lastSession']).pricePerKwh, 0.5);
+    assert.equal(writes['vehicles.v1.energy.nextSessionPrice'], 0);
+    assert.equal(writes['vehicles.v1.energy.nextSessionName'], '');
 });
