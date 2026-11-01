@@ -2104,3 +2104,38 @@ print(json.dumps(report))
     assert.equal(report.replaced, true);
     assert.equal(report.noGitClone, true);
 });
+
+test('charge samples survive restarts via the instance data dir', async () => {
+    const os = require('node:os');
+    const fs = require('node:fs');
+    const tmp = fs.mkdtempSync(require('node:path').join(os.tmpdir(), 'zeekr-samples-'));
+    const makeAdapter = () => {
+        const adapter = new ZeekrAdapter({ log: { silly() {}, debug() {}, info() {}, warn() {}, error() {} } });
+        adapter.getAdapterDataBaseDir = () => tmp;
+        adapter._chargeSamples = new Map();
+        adapter._chargeSamplesRestored = false;
+        return adapter;
+    };
+    const samples = [
+        { ts: 1000, chargePowerKw: 11, batteryLevelPct: 50 },
+        { ts: 2000, chargePowerKw: 11, batteryLevelPct: 55 },
+    ];
+    const first = makeAdapter();
+    first._chargeSamples.set('VIN1', samples);
+    await first.persistChargeSamples();
+    assert.ok(fs.existsSync(require('node:path').join(tmp, 'charge-samples.json')));
+    // Fresh instance (e.g. after update/restart) restores the running session.
+    const second = makeAdapter();
+    await second.restoreChargeSamples();
+    assert.deepEqual(second._chargeSamples.get('VIN1'), samples);
+    // Second restore is a no-op (flag), settled sessions clear the file.
+    await second.restoreChargeSamples();
+    second._chargeSamples.delete('VIN1');
+    await second.persistChargeSamples();
+    assert.equal(fs.existsSync(require('node:path').join(tmp, 'charge-samples.json')), false);
+    // Corrupt file never crashes, just starts fresh.
+    fs.writeFileSync(require('node:path').join(tmp, 'charge-samples.json'), 'not-json{');
+    const third = makeAdapter();
+    await third.restoreChargeSamples();
+    assert.equal(third._chargeSamples.size, 0);
+});
