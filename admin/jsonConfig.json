@@ -505,6 +505,27 @@
           "step": 30,
           "label": "Poll interval (seconds)"
         },
+        "drivePollingInterval": {
+          "type": "number",
+          "xs": 12,
+          "sm": 6,
+          "md": 6,
+          "lg": 6,
+          "xl": 6,
+          "default": 30,
+          "min": 30,
+          "step": 5,
+          "label": "Poll interval while driving (seconds)"
+        },
+        "storeTripPositions": {
+          "type": "checkbox",
+          "xs": 12,
+          "sm": 12,
+          "md": 12,
+          "lg": 12,
+          "xl": 12,
+          "label": "Store trip start/end positions in own logbook (opt-in)"
+        },
         "vehicleFilter": {
           "type": "text",
           "xs": 12,

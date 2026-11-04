@@ -30,6 +30,8 @@
   "Advanced": "Розширені",
   "Only needed for problems. Live hints: info.lastErrorHint.": "Лише за проблем. Підказки: info.lastErrorHint.",
   "Poll interval (seconds)": "Інтервал (сек)",
+  "Poll interval while driving (seconds)": "Інтервал опитування під час руху (секунди)",
+  "Store trip start/end positions in own logbook (opt-in)": "Зберігати позиції старту/фінішу у власному журналі (за бажанням)",
   "Vehicle filter": "Фільтр авто",
   "Part of name or VIN. Empty = all.": "Частина імені або VIN. Порожньо = всі.",
   "Legacy APK 1.5.5 (VIN only)": "Legacy APK 1.5.5 (лише VIN)",

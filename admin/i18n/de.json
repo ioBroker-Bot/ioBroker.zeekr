@@ -30,6 +30,8 @@
   "Advanced": "Erweitert",
   "Only needed for problems. Live hints: info.lastErrorHint.": "Nur bei Problemen nötig. Hinweise live unter info.lastErrorHint.",
   "Poll interval (seconds)": "Abfrageintervall (Sekunden)",
+  "Poll interval while driving (seconds)": "Abfrageintervall während der Fahrt (Sekunden)",
+  "Store trip start/end positions in own logbook (opt-in)": "Start-/Endpositionen im eigenen Fahrtenbuch speichern (Opt-in)",
   "Vehicle filter": "Fahrzeug-Filter",
   "Part of name or VIN. Empty = all.": "Teilstring aus Name oder VIN. Leer = alle.",
   "Legacy APK 1.5.5 (VIN only)": "Legacy-APK 1.5.5 (nur VIN)",

@@ -2240,3 +2240,105 @@ test('per-session price override wins over tariffs and resets', async () => {
     assert.equal(writes['vehicles.v1.energy.nextSessionPrice'], 0);
     assert.equal(writes['vehicles.v1.energy.nextSessionName'], '');
 });
+
+test('driving detection uses speed or running engine', () => {
+    const { ZeekrAdapter } = require('../lib/adapter');
+    assert.equal(ZeekrAdapter.isVehicleDriving({ currentSpeed: 12 }), true);
+    assert.equal(ZeekrAdapter.isVehicleDriving({ currentSpeed: 0, engineStatus: 'engine-off' }), false);
+    assert.equal(ZeekrAdapter.isVehicleDriving({ currentSpeed: 0, engineStatus: 'running' }), true);
+    assert.equal(ZeekrAdapter.isVehicleDriving({}), false);
+    assert.equal(ZeekrAdapter.isVehicleDriving(null), false);
+});
+
+test('drive polling is fast with hysteresis, charge stays at 60s', () => {
+    const { ZeekrAdapter } = require('../lib/adapter');
+    const adapter = new ZeekrAdapter({ log: { silly() {}, debug() {}, info() {}, warn() {}, error() {} } });
+    adapter.pollingInterval = 300;
+    adapter.drivePollingInterval = 30;
+    assert.equal(adapter.getEffectivePollingInterval(), 300);
+    adapter._lastActivePoll = true;
+    assert.equal(adapter.getEffectivePollingInterval(), 60);
+    adapter.updateDriveState([{ currentSpeed: 50 }]);
+    assert.equal(adapter._lastDrivingPoll, true);
+    assert.equal(adapter.getEffectivePollingInterval(), 30);
+    // Short stops do not flap: 2 idle polls keep fast mode.
+    adapter.updateDriveState([{ currentSpeed: 0, engineStatus: 'engine-off' }]);
+    adapter.updateDriveState([{ currentSpeed: 0, engineStatus: 'engine-off' }]);
+    assert.equal(adapter._lastDrivingPoll, true);
+    adapter.updateDriveState([{ currentSpeed: 0, engineStatus: 'engine-off' }]);
+    assert.equal(adapter._lastDrivingPoll, false);
+    assert.equal(adapter.getEffectivePollingInterval(), 60);
+});
+
+test('own logbook settles trips from odometer movement', async () => {
+    const os = require('node:os');
+    const fs = require('node:fs');
+    const tmp = fs.mkdtempSync(require('node:path').join(os.tmpdir(), 'zeekr-own-'));
+    const { ZeekrAdapter } = require('../lib/adapter');
+    const adapter = new ZeekrAdapter({ log: { silly() {}, debug() {}, info() {}, warn() {}, error() {} } });
+    adapter.getAdapterDataBaseDir = () => tmp;
+    adapter.config = { batteryCapacityKwh: 100 };
+    const car = (odo, speed, level) => ({
+        vin: 'VOWN',
+        name: 'Car',
+        odometerKm: odo,
+        currentSpeed: speed,
+        batteryLevel: level,
+        engineStatus: 'engine-off',
+        latitude: 51.3,
+        longitude: 12.38,
+    });
+    await adapter.trackOwnTrips([car(100, 0, 80)]);
+    assert.equal(adapter._states.get('vehicles.vown.trips.ownCount').val, 0);
+    await adapter.trackOwnTrips([car(100.5, 40, 80)]);
+    await adapter.trackOwnTrips([car(105, 50, 79)]);
+    // Parked: 3 polls close the trip.
+    await adapter.trackOwnTrips([car(105, 0, 79)]);
+    await adapter.trackOwnTrips([car(105, 0, 79)]);
+    await adapter.trackOwnTrips([car(105, 0, 79)]);
+    assert.equal(adapter._states.get('vehicles.vown.trips.ownCount').val, 1);
+    assert.equal(adapter._states.get('vehicles.vown.trips.lastOwnDistanceKm').val, 4.5);
+    assert.equal(adapter._states.get('vehicles.vown.trips.lastOwnUsedKwh').val, 1);
+    assert.equal(adapter._states.get('vehicles.vown.trips.ownMonthKm').val, 4.5);
+    assert.equal(adapter._states.get('vehicles.vown.trips.ownMonthCount').val, 1);
+    const list = JSON.parse(adapter._states.get('vehicles.vown.trips.ownList').val);
+    assert.equal(list.length, 1);
+    assert.equal(list[0].source, 'own');
+    assert.ok(!('startLat' in list[0]), 'no positions without opt-in');
+    // Restart restores month totals and the trip list.
+    const second = new ZeekrAdapter({ log: { silly() {}, debug() {}, info() {}, warn() {}, error() {} } });
+    second.getAdapterDataBaseDir = () => tmp;
+    second.config = { batteryCapacityKwh: 100 };
+    await second.trackOwnTrips([car(105, 0, 79)]);
+    assert.equal(second._states.get('vehicles.vown.trips.ownCount').val, 1);
+    assert.equal(second._states.get('vehicles.vown.trips.ownMonthKm').val, 4.5);
+});
+
+test('own logbook stores positions only with opt-in', async () => {
+    const os = require('node:os');
+    const fs = require('node:fs');
+    const tmp = fs.mkdtempSync(require('node:path').join(os.tmpdir(), 'zeekr-ownpos-'));
+    const { ZeekrAdapter } = require('../lib/adapter');
+    const adapter = new ZeekrAdapter({ log: { silly() {}, debug() {}, info() {}, warn() {}, error() {} } });
+    adapter.getAdapterDataBaseDir = () => tmp;
+    adapter.config = { batteryCapacityKwh: 100, storeTripPositions: true };
+    const car = (odo, speed) => ({
+        vin: 'VPOS',
+        name: 'Car',
+        odometerKm: odo,
+        currentSpeed: speed,
+        batteryLevel: 80,
+        engineStatus: 'engine-off',
+        latitude: 51.345678,
+        longitude: 12.381234,
+    });
+    await adapter.trackOwnTrips([car(10, 30)]);
+    await adapter.trackOwnTrips([car(12, 30)]);
+    await adapter.trackOwnTrips([car(12, 0)]);
+    await adapter.trackOwnTrips([car(12, 0)]);
+    await adapter.trackOwnTrips([car(12, 0)]);
+    const list = JSON.parse(adapter._states.get('vehicles.vpos.trips.ownList').val);
+    assert.equal(list.length, 1);
+    assert.equal(list[0].startLat, 51.3457);
+    assert.equal(list[0].endLon, 12.3812);
+});

@@ -30,6 +30,8 @@
   "Advanced": "高级",
   "Only needed for problems. Live hints: info.lastErrorHint.": "仅在出现问题时需要。实时提示：info.lastErrorHint。",
   "Poll interval (seconds)": "轮询间隔（秒）",
+  "Poll interval while driving (seconds)": "行驶时的轮询间隔（秒）",
+  "Store trip start/end positions in own logbook (opt-in)": "在自有行程记录中保存起点/终点位置（可选）",
   "Vehicle filter": "车辆过滤器",
   "Part of name or VIN. Empty = all.": "名称或VIN的一部分。为空=全部。",
   "Legacy APK 1.5.5 (VIN only)": "旧版APK 1.5.5（仅VIN）",
